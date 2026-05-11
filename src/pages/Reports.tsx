@@ -29,7 +29,24 @@ const Reports: React.FC = () => {
     enabled: !!selectedEntity,
   });
 
-  // ... (keeping user/pub fetch queries unchanged)
+  // Fetch target details for preview
+  const { data: targetUser, isLoading: userLoading } = useQuery<UserProfileResponse>({
+    queryKey: ['user', selectedEntity?.targetId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/Users/${selectedEntity?.targetId}`);
+      return response.data;
+    },
+    enabled: !!selectedEntity && selectedEntity.targetType === ReportTargetType.User,
+  });
+
+  const { data: targetPublication, isLoading: pubLoading } = useQuery<PublicationResponse>({
+    queryKey: ['publication', selectedEntity?.targetId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/Publications/${selectedEntity?.targetId}`);
+      return response.data;
+    },
+    enabled: !!selectedEntity && selectedEntity.targetType === ReportTargetType.Publication,
+  });
 
   const resolveMutation = useMutation({
     mutationFn: async ({ action }: { action: ModerationAction }) => {
