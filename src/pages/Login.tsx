@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -19,8 +20,12 @@ const Login: React.FC = () => {
       const response = await apiClient.post('/api/Auth/login', { email, password });
       login(response.data); // Assuming the response data is the token string
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to login');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Failed to login');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }

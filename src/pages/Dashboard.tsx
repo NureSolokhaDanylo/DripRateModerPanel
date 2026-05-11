@@ -1,10 +1,11 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import type { AdvertisementResponse } from '../types/api';
 import { Megaphone, ShieldAlert, Clock } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { data: ads, isLoading: adsLoading } = useQuery({
+  const { data: ads, isLoading: adsLoading } = useQuery<AdvertisementResponse[]>({
     queryKey: ['ads'],
     queryFn: async () => {
       const response = await apiClient.get('/api/Advertisements');
@@ -15,7 +16,7 @@ const Dashboard: React.FC = () => {
   const { data: reports, isLoading: reportsLoading } = useQuery({
     queryKey: ['reportedEntities'],
     queryFn: async () => {
-      const response = await apiClient.get('/api/Moderation/reports');
+      const response = await apiClient.get('/api/moderation/reports');
       return response.data;
     },
   });
@@ -23,7 +24,7 @@ const Dashboard: React.FC = () => {
   const stats = [
     {
       label: 'Active Ads',
-      value: ads?.filter((ad: any) => ad.isActive).length || 0,
+      value: ads?.filter((ad) => ad.isActive).length || 0,
       icon: Megaphone,
       color: 'text-green-500',
       bg: 'bg-green-500/10',

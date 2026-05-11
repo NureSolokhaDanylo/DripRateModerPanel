@@ -54,6 +54,25 @@ export interface ReportDto {
   createdAt: string;
 }
 
+export interface TagResponse {
+  id: string;
+  name: string | null;
+  category: string;
+}
+
+export interface PublicationResponse {
+  id: string;
+  description: string | null;
+  imageUrl: string | null;
+  imageUrls: string[] | null;
+  createdAt: string;
+  userId: string;
+  userDisplayName: string | null;
+  tags: TagResponse[] | null;
+  likesCount: number;
+  commentsCount: number;
+}
+
 export interface UserProfileResponse {
   id: string;
   displayName: string | null;
