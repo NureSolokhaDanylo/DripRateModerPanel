@@ -18,7 +18,8 @@ const Advertisements: React.FC = () => {
     tagIds: [] as string[],
     isActive: true,
   });
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ads, isLoading } = useQuery<AdvertisementResponse[]>({
@@ -81,9 +82,10 @@ const Advertisements: React.FC = () => {
         text: ad.text || '',
         url: ad.url || '',
         maxImpressions: ad.maxImpressions,
-        tagIds: ad.tagIds || [],
+        tagIds: ad.tags?.map(t => t.id) || [],
         isActive: ad.isActive,
       });
+      setExistingImages(ad.images || []);
     } else {
       setEditingAd(null);
       setFormData({
@@ -93,8 +95,9 @@ const Advertisements: React.FC = () => {
         tagIds: [],
         isActive: true,
       });
+      setExistingImages([]);
     }
-    setSelectedImages([]);
+    setNewImages([]);
     setIsModalOpen(true);
   };
 
@@ -105,29 +108,16 @@ const Advertisements: React.FC = () => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setSelectedImages(Array.from(e.target.files));
+      setNewImages(prev => [...prev, ...Array.from(e.target.files!)]);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const data = new FormData();
-    data.append('Text', formData.text);
-    data.append('Url', formData.url);
-    data.append('MaxImpressions', formData.maxImpressions.toString());
-    formData.tagIds.forEach(id => data.append('TagIds', id));
+  const removeExistingImage = (url: string) => {
+    setExistingImages(prev => prev.filter(u => u !== url));
+  };
 
-    if (editingAd) {
-      data.append('IsActive', formData.isActive.toString());
-      if (editingAd.imageUrls) {
-        editingAd.imageUrls.forEach(url => data.append('ExistingImages', url));
-      }
-      selectedImages.forEach(file => data.append('NewImages', file));
-      updateMutation.mutate({ id: editingAd.id, data });
-    } else {
-      selectedImages.forEach(file => data.append('Images', file));
-      createMutation.mutate(data);
-    }
+  const removeNewImage = (index: number) => {
+    setNewImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const toggleTag = (tagId: string) => {
@@ -137,6 +127,67 @@ const Advertisements: React.FC = () => {
         ? prev.tagIds.filter(id => id !== tagId)
         : [...prev.tagIds, tagId]
     }));
+  };
+
+  const groupedTags = tags?.reduce((acc, tag) => {
+    const category = tag.category || 'Other';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(tag);
+    return acc;
+  }, {} as Record<string, TagResponse[]>);
+
+  const toggleCategory = (category: string) => {
+    const categoryTagIds = groupedTags?.[category].map(t => t.id) || [];
+    const allSelected = categoryTagIds.every(id => formData.tagIds.includes(id));
+    
+    setFormData(prev => {
+      const otherTagIds = prev.tagIds.filter(id => !categoryTagIds.includes(id));
+      return {
+        ...prev,
+        tagIds: allSelected ? otherTagIds : [...otherTagIds, ...categoryTagIds]
+      };
+    });
+  };
+
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError(null);
+
+    // Validation
+    if (formData.text.length < 10) {
+      setValidationError('Text must be at least 10 characters long.');
+      return;
+    }
+    if (!formData.url.startsWith('http')) {
+      setValidationError('URL must start with http:// or https://');
+      return;
+    }
+    if (formData.tagIds.length === 0) {
+      setValidationError('Select at least one tag for targeting.');
+      return;
+    }
+    if (existingImages.length === 0 && newImages.length === 0) {
+      setValidationError('Upload at least one image.');
+      return;
+    }
+
+    const data = new FormData();
+    data.append('Text', formData.text);
+    data.append('Url', formData.url);
+    data.append('MaxImpressions', formData.maxImpressions.toString());
+    formData.tagIds.forEach(id => data.append('TagIds', id));
+
+    if (editingAd) {
+      data.append('IsActive', formData.isActive.toString());
+      existingImages.forEach(url => data.append('ExistingImages', url));
+      newImages.forEach(file => data.append('NewImages', file));
+      updateMutation.mutate({ id: editingAd.id, data });
+    } else {
+      newImages.forEach(file => data.append('Images', file));
+      createMutation.mutate(data);
+    }
   };
 
   return (
@@ -195,8 +246,8 @@ const Advertisements: React.FC = () => {
                   <tr key={ad.id} className="hover:bg-gray-700/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-4">
-                        {ad.imageUrl ? (
-                          <img src={ad.imageUrl} alt="" className="w-12 h-12 object-cover rounded-md bg-gray-600" />
+                        {ad.images && ad.images.length > 0 ? (
+                          <img src={ad.images[0]} alt="" className="w-12 h-12 object-cover rounded-md bg-gray-600" />
                         ) : (
                           <div className="w-12 h-12 bg-gray-600 rounded-md flex items-center justify-center">
                             <Megaphone size={20} className="text-gray-400" />
@@ -211,11 +262,11 @@ const Advertisements: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm font-medium">{ad.currentImpressions} / {ad.maxImpressions}</p>
+                      <p className="text-sm font-medium">{ad.shownCount} / {ad.maxImpressions}</p>
                       <div className="w-32 bg-gray-700 h-1.5 rounded-full mt-1.5 overflow-hidden">
                         <div 
                           className="bg-blue-500 h-full" 
-                          style={{ width: `${Math.min(100, (ad.currentImpressions / ad.maxImpressions) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (ad.shownCount / ad.maxImpressions) * 100)}%` }}
                         />
                       </div>
                     </td>
@@ -255,7 +306,7 @@ const Advertisements: React.FC = () => {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-700 flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingAd ? 'Edit Advertisement' : 'Create New Advertisement'}</h3>
               <button onClick={closeModal} className="text-gray-400 hover:text-white">
@@ -264,84 +315,128 @@ const Advertisements: React.FC = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {validationError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                  {validationError}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-400">Ad Text</label>
-                  <input
-                    type="text"
+                  <textarea
                     value={formData.text}
                     onChange={(e) => setFormData({ ...formData, text: e.target.value })}
-                    className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
                     placeholder="Premium Outfit 2026..."
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Target URL</label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/promo"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Max Impressions</label>
-                  <input
-                    type="number"
-                    value={formData.maxImpressions}
-                    onChange={(e) => setFormData({ ...formData, maxImpressions: parseInt(e.target.value) })}
-                    className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    min="1"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Ad Image</label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-2.5 bg-gray-900 border border-dashed border-gray-700 rounded-lg text-gray-400 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors"
-                  >
-                    {selectedImages.length > 0 ? (
-                      <span className="text-white text-sm">{selectedImages[0].name}</span>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <Upload size={18} />
-                        <span className="text-sm">Upload image</span>
-                      </div>
-                    )}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400">Target URL</label>
+                    <input
+                      type="url"
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://example.com/promo"
+                      required
+                    />
                   </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    className="hidden"
-                    accept="image/*"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400">Max Impressions</label>
+                    <input
+                      type="number"
+                      value={formData.maxImpressions}
+                      onChange={(e) => setFormData({ ...formData, maxImpressions: parseInt(e.target.value) })}
+                      className="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="1"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-400">Target Tags</label>
-                <div className="flex flex-wrap gap-2">
-                  {tags?.map((tag) => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={cn(
-                        "px-3 py-1 rounded-full text-xs font-medium border transition-all",
-                        formData.tagIds.includes(tag.id)
-                          ? "bg-blue-600 border-blue-500 text-white"
-                          : "bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500"
-                      )}
-                    >
-                      {tag.name}
-                    </button>
+                <label className="text-sm font-medium text-gray-400">Ad Images</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {existingImages.map((url) => (
+                    <div key={url} className="relative aspect-square bg-gray-900 rounded-lg overflow-hidden group border border-gray-700">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(url)}
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   ))}
+                  {newImages.map((file, index) => (
+                    <div key={index} className="relative aspect-square bg-gray-900 rounded-lg overflow-hidden group border border-blue-500/50">
+                      <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(index)}
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-[10px] text-white text-center py-0.5 font-bold">NEW</div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square bg-gray-900 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-all"
+                  >
+                    <Upload size={24} />
+                    <span className="text-xs mt-2 font-medium">Add Image</span>
+                  </button>
                 </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-medium text-gray-400">Targeting Tags</label>
+                {groupedTags && Object.entries(groupedTags).map(([category, categoryTags]) => (
+                  <div key={category} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-500">{category}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(category)}
+                        className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+                      >
+                        {categoryTags.every(t => formData.tagIds.includes(t.id)) ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {categoryTags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => toggleTag(tag.id)}
+                          className={cn(
+                            "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                            formData.tagIds.includes(tag.id)
+                              ? "bg-blue-600 border-blue-500 text-white"
+                              : "bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500"
+                          )}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {editingAd && (

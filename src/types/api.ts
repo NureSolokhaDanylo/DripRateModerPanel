@@ -25,12 +25,11 @@ export interface AdvertisementResponse {
   id: string;
   text: string | null;
   url: string | null;
-  imageUrl: string | null;
-  imageUrls: string[] | null;
+  images: string[] | null;
   maxImpressions: number;
-  currentImpressions: number;
+  shownCount: number;
   isActive: boolean;
-  tagIds: string[] | null;
+  tags: TagResponse[] | null;
   createdAt: string;
 }
 
