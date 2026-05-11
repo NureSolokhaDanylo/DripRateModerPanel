@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -12,20 +12,46 @@ import Reports from './pages/Reports';
 
 const queryClient = new QueryClient();
 
+const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <Layout />,
+        children: [
+          {
+            path: '/',
+            element: <Dashboard />,
+          },
+          {
+            path: '/ads',
+            element: <Advertisements />,
+          },
+          {
+            path: '/reports',
+            element: <Reports />,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
+], {
+  basename: import.meta.env.BASE_URL,
+});
+
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Layout><Dashboard /></Layout>} />
-              <Route path="/ads" element={<Layout><Advertisements /></Layout>} />
-              <Route path="/reports" element={<Layout><Reports /></Layout>} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   );
