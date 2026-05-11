@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
       bg: 'bg-green-500/10',
     },
     {
-      label: 'Pending Reports',
+      label: 'Assigned Tasks',
       value: reports?.length || 0,
       icon: ShieldAlert,
       color: 'text-red-500',

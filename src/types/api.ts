@@ -83,3 +83,16 @@ export interface UserProfileResponse {
   publicationsCount: number;
   isFollowing: boolean;
 }
+
+export interface CommentResponse {
+  id: string;
+  text: string;
+  createdAt: string;
+  userId: string;
+  userDisplayName: string | null;
+  avatarUrl: string | null;
+  likesCount: number;
+  isLikedByMe: boolean;
+  parentCommentId: string | null;
+  repliesCount: number;
+}

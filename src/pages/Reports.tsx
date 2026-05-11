@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
-import type { ReportedEntityDto, ReportDto, UserProfileResponse, PublicationResponse } from '../types/api';
+import type { ReportedEntityDto, ReportDto, UserProfileResponse, PublicationResponse, CommentResponse } from '../types/api';
 import { ModerationAction, ReportTargetType } from '../types/api';
 import { ShieldAlert, User, MessageSquare, Image, ChevronRight, CheckCircle, Ban, Trash2, Loader2, ExternalLink, Calendar, Heart } from 'lucide-react';
 
@@ -46,6 +46,17 @@ const Reports: React.FC = () => {
       return response.data;
     },
     enabled: !!selectedEntity && selectedEntity.targetType === ReportTargetType.Publication,
+  });
+
+  const { data: targetComment, isLoading: commentLoading } = useQuery<CommentResponse>({
+    queryKey: ['comment', selectedEntity?.targetId],
+    queryFn: async () => {
+      // The API requires a publication ID in the route, but the handler ignores it.
+      // We use targetId (commentId) for both as a workaround.
+      const response = await apiClient.get(`/api/Publications/${selectedEntity?.targetId}/comments/${selectedEntity?.targetId}`);
+      return response.data;
+    },
+    enabled: !!selectedEntity && selectedEntity.targetType === ReportTargetType.Comment,
   });
 
   const resolveMutation = useMutation({
@@ -134,7 +145,7 @@ const Reports: React.FC = () => {
                           </span>
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          {entity.pendingReportsCount} reports • Last: {new Date(entity.lastReportedAt).toLocaleDateString()}
+                          {entity.pendingReportsCount} reports
                         </p>
                         {entity.assignedToUserName && (
                           <p className="text-[10px] text-blue-400 mt-0.5">Assigned to: {entity.assignedToUserName}</p>
@@ -196,7 +207,7 @@ const Reports: React.FC = () => {
               {/* Preview Card */}
               <div className="mb-8">
                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Target Preview</h4>
-                {userLoading || pubLoading ? (
+                {userLoading || pubLoading || commentLoading ? (
                   <div className="bg-gray-900/50 rounded-xl p-8 border border-gray-700 flex flex-col items-center justify-center space-y-3">
                     <Loader2 size={32} className="animate-spin text-blue-500" />
                     <span className="text-gray-500 text-sm">Fetching preview data...</span>
@@ -252,6 +263,31 @@ const Reports: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                ) : targetComment ? (
+                  <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
+                    <div className="flex items-start space-x-4">
+                      <img src={targetComment.avatarUrl || ''} alt="" className="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-700" />
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold text-gray-200">{targetComment.userDisplayName || 'Anonymous'}</h4>
+                          <button className="text-blue-400 hover:text-blue-300">
+                            <ExternalLink size={16} />
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-300 mt-1 italic">"{targetComment.text}"</p>
+                        <div className="mt-4 flex items-center space-x-4 text-xs text-gray-500">
+                          <span className="flex items-center space-x-1">
+                            <Heart size={12} className={targetComment.isLikedByMe ? "text-red-500" : ""} />
+                            <span>{targetComment.likesCount} likes</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <MessageSquare size={12} className="text-blue-400" />
+                            <span>{targetComment.repliesCount} replies</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="bg-gray-900/50 rounded-xl p-4 border border-dashed border-gray-700 text-center text-gray-500 text-sm">
                     No preview available for this target type.
@@ -268,9 +304,6 @@ const Reports: React.FC = () => {
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-bold text-blue-400 px-2 py-0.5 bg-blue-400/10 rounded-full border border-blue-400/20">
                         {report.category}
-                      </span>
-                      <span className="text-[10px] text-gray-500">
-                        {new Date(report.createdAt).toLocaleString()}
                       </span>
                     </div>
                     <p className="text-sm text-gray-300 italic">"{report.text || 'No description provided.'}"</p>
