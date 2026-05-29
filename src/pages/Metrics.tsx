@@ -31,34 +31,34 @@ const Metrics: React.FC = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <MetricCard 
-          title="Acquisition (Привлечение)" 
+          title="Acquisition" 
           value={metrics?.acquisition_TotalUsers} 
           icon={<Users size={32} className="text-blue-500" />} 
-          description="Загальна кількість зареєстрованих користувачів" 
+          description="Total number of registered users" 
         />
         <MetricCard 
-          title="Activation (Активация)" 
+          title="Activation" 
           value={metrics?.activation_ActiveUsers} 
           icon={<Activity size={32} className="text-green-500" />} 
-          description="Зробили хоча б одну публікацію або оцінку" 
+          description="Users who made at least one publication or assessment" 
         />
         <MetricCard 
-          title="Retention (Удержание)" 
+          title="Retention" 
           value={metrics?.retention_UsersReturnedAfter7Days} 
           icon={<RotateCcw size={32} className="text-yellow-500" />} 
-          description="Оцінили публікацію через 7+ днів після реєстрації" 
+          description="Users who assessed a look 7+ days after registration" 
         />
         <MetricCard 
-          title="Referral (Виральность)" 
+          title="Referral" 
           value={metrics?.referral_TotalFollows} 
           icon={<Share2 size={32} className="text-purple-500" />} 
-          description="Внутрішні підписки (Follows) один на одного" 
+          description="Total number of internal subscriptions (Follows)" 
         />
         <MetricCard 
-          title="Revenue (Монетизация)" 
+          title="Revenue" 
           value={metrics?.revenue_AdViews} 
           icon={<DollarSign size={32} className="text-emerald-500" />} 
-          description="Загальна кількість переглядів рекламних інтеграцій" 
+          description="Total number of advertisement views" 
         />
       </div>
     </div>
