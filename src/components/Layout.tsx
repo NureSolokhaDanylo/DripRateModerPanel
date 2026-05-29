@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Megaphone, ShieldAlert, LogOut } from 'lucide-react';
+import { LayoutDashboard, Megaphone, ShieldAlert, LogOut, PieChart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -22,6 +22,7 @@ const Layout: React.FC = () => {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/ads', icon: Megaphone, label: 'Advertisements' },
     { to: '/reports', icon: ShieldAlert, label: 'Reports' },
+    { to: '/metrics', icon: PieChart, label: 'AARRR Metrics' },
   ];
 
   return (

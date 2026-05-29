@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Advertisements from './pages/Advertisements';
 import Reports from './pages/Reports';
+import Metrics from './pages/Metrics';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,10 @@ const router = createBrowserRouter([
           {
             path: '/reports',
             element: <Reports />,
+          },
+          {
+            path: '/metrics',
+            element: <Metrics />,
           },
         ],
       },
