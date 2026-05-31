@@ -5,6 +5,8 @@ import type { ReportedEntityDto, ReportDto, UserProfileResponse, PublicationResp
 import { ModerationAction, ReportTargetType } from '../types/api';
 import { ShieldAlert, User, MessageSquare, Image, ChevronRight, CheckCircle, Ban, Trash2, Loader2, ExternalLink, Calendar, Heart } from 'lucide-react';
 
+const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:5173';
+
 const Reports: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedEntity, setSelectedEntity] = useState<ReportedEntityDto | null>(null);
@@ -218,9 +220,9 @@ const Reports: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex justify-between">
                         <h4 className="font-bold text-lg">{targetUser.displayName || 'Unnamed User'}</h4>
-                        <button className="text-blue-400 hover:text-blue-300">
+                        <a href={`${SITE_URL}/users/${targetUser.id}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
                           <ExternalLink size={16} />
-                        </button>
+                        </a>
                       </div>
                       <p className="text-sm text-gray-400 mt-1 line-clamp-2">{targetUser.bio || 'No bio provided.'}</p>
                       <div className="flex space-x-4 mt-3 text-xs text-gray-500">
@@ -241,9 +243,9 @@ const Reports: React.FC = () => {
                     <div className="p-4 flex-1">
                       <div className="flex justify-between">
                         <h4 className="font-medium text-sm line-clamp-2 text-gray-200">"{targetPublication.description || 'No description'}"</h4>
-                        <button className="text-blue-400 hover:text-blue-300 ml-2 shrink-0">
+                        <a href={`${SITE_URL}/publications/${targetPublication.id}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 ml-2 shrink-0">
                           <ExternalLink size={16} />
-                        </button>
+                        </a>
                       </div>
                       <div className="mt-auto pt-3 flex items-center justify-between text-[10px] text-gray-500">
                         <div className="flex items-center space-x-3">
@@ -270,9 +272,9 @@ const Reports: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex justify-between items-center">
                           <h4 className="font-bold text-gray-200">{targetComment.userDisplayName || 'Anonymous'}</h4>
-                          <button className="text-blue-400 hover:text-blue-300">
+                          <a href={`${SITE_URL}/users/${targetComment.userId}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
                             <ExternalLink size={16} />
-                          </button>
+                          </a>
                         </div>
                         <p className="text-sm text-gray-300 mt-1 italic">"{targetComment.text}"</p>
                         <div className="mt-4 flex items-center space-x-4 text-xs text-gray-500">
