@@ -66,36 +66,23 @@ const Advertisements: React.FC = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string, isActive: boolean }) => {
-      await apiClient.patch(`/api/Advertisements/${id}/active`, isActive, {
+      const response = await apiClient.patch(`/api/Advertisements/${id}/active`, isActive, {
         headers: { 'Content-Type': 'application/json' }
       });
+      return response.data;
     },
-    onMutate: async ({ id, isActive }) => {
-      await queryClient.cancelQueries({ queryKey: ['ads'] });
-      const previousAdsSearch = queryClient.getQueryData(['ads', searchTerm]);
-      const previousAdsDashboard = queryClient.getQueryData(['ads']);
-      
+    onSuccess: (updatedAd) => {
       // Update Advertisements page cache
       queryClient.setQueryData(['ads', searchTerm], (old: AdvertisementResponse[] | undefined) => {
         if (!old) return old;
-        return old.map(ad => ad.id === id ? { ...ad, isActive } : ad);
+        return old.map(ad => ad.id === updatedAd.id ? updatedAd : ad);
       });
       
       // Update Dashboard cache
       queryClient.setQueryData(['ads'], (old: AdvertisementResponse[] | undefined) => {
         if (!old) return old;
-        return old.map(ad => ad.id === id ? { ...ad, isActive } : ad);
+        return old.map(ad => ad.id === updatedAd.id ? updatedAd : ad);
       });
-      
-      return { previousAdsSearch, previousAdsDashboard };
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousAdsSearch) {
-        queryClient.setQueryData(['ads', searchTerm], context.previousAdsSearch);
-      }
-      if (context?.previousAdsDashboard) {
-        queryClient.setQueryData(['ads'], context.previousAdsDashboard);
-      }
     },
   });
 
