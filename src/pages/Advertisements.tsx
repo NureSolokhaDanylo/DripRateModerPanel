@@ -70,7 +70,23 @@ const Advertisements: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }
       });
     },
-    onSuccess: () => {
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ['ads'] });
+      const previousAds = queryClient.getQueryData(['ads', searchTerm]);
+      
+      queryClient.setQueryData(['ads', searchTerm], (old: AdvertisementResponse[] | undefined) => {
+        if (!old) return old;
+        return old.map(ad => ad.id === id ? { ...ad, isActive } : ad);
+      });
+      
+      return { previousAds };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousAds) {
+        queryClient.setQueryData(['ads', searchTerm], context.previousAds);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['ads'] });
     },
   });

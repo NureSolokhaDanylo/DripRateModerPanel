@@ -11,7 +11,14 @@ import Advertisements from './pages/Advertisements';
 import Reports from './pages/Reports';
 import Metrics from './pages/Metrics';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const router = createBrowserRouter([
   {
