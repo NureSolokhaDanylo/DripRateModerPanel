@@ -72,22 +72,30 @@ const Advertisements: React.FC = () => {
     },
     onMutate: async ({ id, isActive }) => {
       await queryClient.cancelQueries({ queryKey: ['ads'] });
-      const previousAds = queryClient.getQueryData(['ads', searchTerm]);
+      const previousAdsSearch = queryClient.getQueryData(['ads', searchTerm]);
+      const previousAdsDashboard = queryClient.getQueryData(['ads']);
       
+      // Update Advertisements page cache
       queryClient.setQueryData(['ads', searchTerm], (old: AdvertisementResponse[] | undefined) => {
         if (!old) return old;
         return old.map(ad => ad.id === id ? { ...ad, isActive } : ad);
       });
       
-      return { previousAds };
+      // Update Dashboard cache
+      queryClient.setQueryData(['ads'], (old: AdvertisementResponse[] | undefined) => {
+        if (!old) return old;
+        return old.map(ad => ad.id === id ? { ...ad, isActive } : ad);
+      });
+      
+      return { previousAdsSearch, previousAdsDashboard };
     },
     onError: (err, variables, context) => {
-      if (context?.previousAds) {
-        queryClient.setQueryData(['ads', searchTerm], context.previousAds);
+      if (context?.previousAdsSearch) {
+        queryClient.setQueryData(['ads', searchTerm], context.previousAdsSearch);
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['ads'] });
+      if (context?.previousAdsDashboard) {
+        queryClient.setQueryData(['ads'], context.previousAdsDashboard);
+      }
     },
   });
 
